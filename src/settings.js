@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS = {
   coverAspect: '16/9', // 封面宽高比
   gap: 10,             // 卡片间距(margin,px)
   titleLines: 2,       // 标题固定行数(0 = 不固定,卡高随内容变化)
+  textPadding: 12,     // 文本上下间距(px,卡片内文本块的纵向 padding,调小更紧凑)
   cardFont: '',        // 卡片字体(空 = 跟随主题)
   cardSize: 14,        // 卡片字号(px)
   editorFont: '',      // 源码编辑器字体(空 = 等宽)
@@ -27,14 +28,14 @@ export function coverHeight() {
   return Math.round(settings.cardWidth * ratio);
 }
 
-// 视频卡总高估算:正文 = 标题块 + 统计/UP主/padding/边框 ≈ 76
+// 视频卡总高估算:封面 + 标题块 + 上下间距 + 统计/UP主/边框 ≈ 52
 export function cardHeight() {
-  return coverHeight() + titleBlockHeight() + 76;
+  return coverHeight() + titleBlockHeight() + settings.textPadding * 2 + 52;
 }
 
-// UP主卡总高估算:头像行 = 头像直径 + 上下 padding;有代表作再加封面+标题
+// UP主卡总高估算:头像行 = 头像直径 + 上下间距;有代表作再加封面+标题
 export function upCardHeight(hasVideo) {
-  const head = settings.avatarSize + 30;
+  const head = settings.avatarSize + settings.textPadding * 2 + 6;
   if (!hasVideo) return head + 4;
   return head + coverHeight() + Math.max(titleBlockHeight(), Math.round(settings.cardSize * 1.4)) + 28;
 }

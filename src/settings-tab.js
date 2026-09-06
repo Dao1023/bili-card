@@ -1,4 +1,4 @@
-// ========== 设置面板 ==========
+// ========== 设置面板(分组) ==========
 
 import { PluginSettingTab, Setting } from 'obsidian';
 import { DEFAULT_SETTINGS, settings } from './settings.js';
@@ -8,24 +8,33 @@ export class BiliCardSettingTab extends PluginSettingTab {
     super(app, plugin);
     this.plugin = plugin;
   }
+
+  // 数字输入框的公共逻辑:解析合法才保存应用
+  numSetting(container, name, desc, key, placeholder, min) {
+    new Setting(container)
+      .setName(name)
+      .setDesc(desc)
+      .addText((t) => t
+        .setPlaceholder(placeholder)
+        .setValue(String(settings[key]))
+        .onChange(async (v) => {
+          const n = parseInt(v, 10);
+          if (!isNaN(n) && n >= min) {
+            settings[key] = n;
+            await this.plugin.applySettings();
+          }
+        }));
+  }
+
   display() {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl('h2', { text: 'B站卡片' });
 
-    new Setting(containerEl)
-      .setName('卡片宽度')
-      .setDesc('每张卡片的宽度(px),默认 320。随便填,超宽超限自己负责')
-      .addText((t) => t
-        .setPlaceholder('320')
-        .setValue(String(settings.cardWidth))
-        .onChange(async (v) => {
-          const n = parseInt(v, 10);
-          if (!isNaN(n) && n > 0) {
-            settings.cardWidth = n;
-            await this.plugin.applySettings();
-          }
-        }));
+    // ===== 布局 =====
+    containerEl.createEl('h3', { text: '布局' });
+
+    this.numSetting(containerEl, '卡片宽度', '每张卡片的宽度(px),默认 320。随便填,超宽超限自己负责', 'cardWidth', '320', 1);
 
     new Setting(containerEl)
       .setName('封面宽高比')
@@ -38,19 +47,7 @@ export class BiliCardSettingTab extends PluginSettingTab {
           await this.plugin.applySettings();
         }));
 
-    new Setting(containerEl)
-      .setName('卡片间距')
-      .setDesc('卡片外边距(px),实际间距为两倍,默认 10。填 0 密排,填 100 银河')
-      .addText((t) => t
-        .setPlaceholder('10')
-        .setValue(String(settings.gap))
-        .onChange(async (v) => {
-          const n = parseInt(v, 10);
-          if (!isNaN(n) && n >= 0) {
-            settings.gap = n;
-            await this.plugin.applySettings();
-          }
-        }));
+    this.numSetting(containerEl, '卡片间距', '卡片外边距(px),实际间距为两倍,默认 10。填 0 密排,填 100 银河', 'gap', '10', 0);
 
     new Setting(containerEl)
       .setName('标题行数')
@@ -64,6 +61,16 @@ export class BiliCardSettingTab extends PluginSettingTab {
           await this.plugin.applySettings();
         }));
 
+    this.numSetting(containerEl, '文本上下间距', '卡片内文本块的纵向 padding(px),默认 12。调小卡片更紧凑,填 0 贴边', 'textPadding', '12', 0);
+
+    // ===== UP主卡 =====
+    containerEl.createEl('h3', { text: 'UP主卡' });
+
+    this.numSetting(containerEl, '头像大小', 'UP主卡头像直径(px),默认 60', 'avatarSize', '60', 1);
+
+    // ===== 字体 =====
+    containerEl.createEl('h3', { text: '字体' });
+
     new Setting(containerEl)
       .setName('卡片字体')
       .setDesc('标题/统计/UP主的 font-family,如 "PingFang SC, sans-serif"。留空跟随主题')
@@ -75,36 +82,13 @@ export class BiliCardSettingTab extends PluginSettingTab {
           await this.plugin.applySettings();
         }));
 
-    new Setting(containerEl)
-      .setName('卡片字号')
-      .setDesc('标题字号(px),统计/UP主按 0.86 倍跟随,默认 14')
-      .addText((t) => t
-        .setPlaceholder('14')
-        .setValue(String(settings.cardSize))
-        .onChange(async (v) => {
-          const n = parseInt(v, 10);
-          if (!isNaN(n) && n > 0) {
-            settings.cardSize = n;
-            await this.plugin.applySettings();
-          }
-        }));
+    this.numSetting(containerEl, '卡片字号', '标题字号(px),统计/UP主按 0.86 倍跟随,默认 14', 'cardSize', '14', 1);
+
+    // ===== 源码编辑器 =====
+    containerEl.createEl('h3', { text: '源码编辑器' });
 
     new Setting(containerEl)
-      .setName('UP主头像大小')
-      .setDesc('UP主卡头像直径(px),默认 60')
-      .addText((t) => t
-        .setPlaceholder('60')
-        .setValue(String(settings.avatarSize))
-        .onChange(async (v) => {
-          const n = parseInt(v, 10);
-          if (!isNaN(n) && n > 0) {
-            settings.avatarSize = n;
-            await this.plugin.applySettings();
-          }
-        }));
-
-    new Setting(containerEl)
-      .setName('源码编辑器字体')
+      .setName('编辑器字体')
       .setDesc('点卡片进入编辑态后 textarea 的 font-family。留空用等宽字体')
       .addText((t) => t
         .setPlaceholder('等宽字体')
@@ -114,18 +98,6 @@ export class BiliCardSettingTab extends PluginSettingTab {
           await this.plugin.applySettings();
         }));
 
-    new Setting(containerEl)
-      .setName('源码编辑器字号')
-      .setDesc('编辑态 textarea 的字号(px),默认 13')
-      .addText((t) => t
-        .setPlaceholder('13')
-        .setValue(String(settings.editorSize))
-        .onChange(async (v) => {
-          const n = parseInt(v, 10);
-          if (!isNaN(n) && n > 0) {
-            settings.editorSize = n;
-            await this.plugin.applySettings();
-          }
-        }));
+    this.numSetting(containerEl, '编辑器字号', '编辑态 textarea 的字号(px),默认 13', 'editorSize', '13', 1);
   }
 }

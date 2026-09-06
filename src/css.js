@@ -40,7 +40,7 @@ export function cardCss() {
     padding: 2px 6px; border-radius: 4px;
     font-size: 12px; font-weight: 500;
   }
-  .body { padding: 12px; }
+  .body { padding: ${s.textPadding}px 12px; }
   .title {
     font-size: ${s.cardSize}px; font-weight: 600;
     color: var(--text-normal);
@@ -65,7 +65,7 @@ export function cardCss() {
   /* ===== UP主卡 ===== */
   .up-head {
     display: flex; gap: 12px; align-items: center;
-    padding: 14px 14px 10px;
+    padding: ${s.textPadding}px 14px ${Math.max(s.textPadding - 2, 2)}px;
   }
   .avatar-link { flex-shrink: 0; }
   .avatar {
@@ -91,7 +91,7 @@ export function cardCss() {
   .up-vtitle {
     display: -webkit-box; -webkit-line-clamp: ${fixedTitle ? s.titleLines : 'unset'}; -webkit-box-orient: vertical;
     overflow: hidden; text-overflow: ellipsis;
-    padding: 8px 14px 14px; line-height: 1.4;
+    padding: 8px 14px ${s.textPadding}px; line-height: 1.4;
     font-size: 0.93em; color: var(--text-normal); text-decoration: none;
   }
   .up-vtitle:hover { color: var(--accent-color); }
