@@ -50,10 +50,14 @@ export class UrlModal extends Modal {
         .setButtonText('取消')
         .onClick(() => this.close()));
 
-    // 剪贴板里是 B 站链接就直接预填
+    // 剪贴板预填:整段文本本身就是一个干净链接/BV号/mid 才填
+    // (含空白、< > 或超长的一律不填,避免复制了卡片源码/长文时填进一堆垃圾)
     if (navigator.clipboard && navigator.clipboard.readText) {
       navigator.clipboard.readText().then((t) => {
-        if (t && parseBiliUrl(t) && !urlInput.getValue()) urlInput.setValue(t.trim());
+        const c = (t || '').trim();
+        if (c && c.length < 120 && !/[\s<>]/.test(c) && parseBiliUrl(c) && !urlInput.getValue()) {
+          urlInput.setValue(c);
+        }
       }).catch(() => { /* 读不到就算了 */ });
     }
     window.setTimeout(() => urlInput.inputEl.focus(), 50);

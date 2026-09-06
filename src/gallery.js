@@ -2,6 +2,7 @@
 
 import { StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType } from '@codemirror/view';
+import { Notice } from 'obsidian';
 import { settings, cardHeight, upCardHeight } from './settings.js';
 import { BiliCardRenderer } from './renderer.js';
 import { UrlModal } from './url-modal.js';
@@ -12,6 +13,30 @@ export const CARD_LINE_RE = /^\s*<div class="bili-(?:card|up-card)"\s/;
 // 插件入口传入的 app 引用(开弹窗用)
 let appRef = null;
 export function setGalleryApp(app) { appRef = app; }
+
+// 在【当前文档】里重新定位画廊范围。
+// widget 缓存的 from/to 会在弹窗异步期间因文档变动而漂移,
+// 往漂移位置写会吞掉正文——所有写操作必须先用这个重定位。
+function findGalleryRange(state, text) {
+  let start = -1, end = -1;
+  let found = null;
+  const flush = () => {
+    if (start < 0) return;
+    if (state.doc.sliceString(start, end) === text) found = { from: start, to: end };
+    start = -1;
+  };
+  for (let i = 1; i <= state.doc.lines; i++) {
+    const line = state.doc.line(i);
+    if (CARD_LINE_RE.test(line.text)) {
+      if (start < 0) start = line.from;
+      end = line.to;
+    } else {
+      flush();
+    }
+  }
+  flush();
+  return found;
+}
 
 // 正在编辑中的 gallery(键 = 源码文本;编辑只动 textarea,不动文档,所以键稳定)
 const editingGalleries = new Set();
@@ -68,21 +93,6 @@ class BiliGalleryWidget extends WidgetType {
     });
     container.appendChild(editBtn);
 
-    // 添加卡片按钮:弹窗输 URL,新卡追加到本画廊末尾
-    const addBtn = document.createElement('button');
-    addBtn.className = 'bili-gallery-add';
-    addBtn.textContent = '+';
-    addBtn.title = '添加卡片';
-    addBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!appRef) return;
-      new UrlModal(appRef, (line) => {
-        view.dispatch({ changes: { from: this.to, insert: '\n' + line } });
-      }).open();
-    });
-    container.appendChild(addBtn);
-
     // 点 gallery 空白处进入编辑(卡片自身 mousedown 已 stopPropagation,点卡片 = 开链接)
     container.addEventListener('mousedown', (e) => {
       if (e.ctrlKey || e.metaKey) return;
@@ -124,12 +134,32 @@ class BiliGalleryEditWidget extends WidgetType {
     const bar = document.createElement('div');
     bar.className = 'bili-gallery-editor-bar';
 
+    // 通过 URL 添加:生成的卡片行先进 textarea,随"完成"一起写回(单一写入路径)
+    const add = document.createElement('button');
+    add.className = 'bili-gallery-url-add';
+    add.textContent = '通过 URL 添加';
+    add.title = '输入 B 站链接,拉取数据生成卡片行,追加到上方源码末尾';
+    add.addEventListener('click', () => {
+      if (!appRef) return;
+      new UrlModal(appRef, (line) => {
+        ta.value = ta.value.replace(/\s+$/, '') + '\n' + line;
+        ta.scrollTop = ta.scrollHeight;
+      }).open();
+    });
+
     const save = document.createElement('button');
     save.textContent = '完成';
     save.addEventListener('click', () => {
       editingGalleries.delete(this.text);
+      // 写回前在当前文档里重新定位画廊,不用 widget 缓存的旧位置(会漂移吞正文)
+      const range = findGalleryRange(view.state, this.text);
+      if (!range) {
+        new Notice('画廊位置已变化,写回失败,请重新编辑');
+        pokeView(view);
+        return;
+      }
       // 整体写回(一次性替换,避免中间态)
-      view.dispatch({ changes: { from: this.from, to: this.to, insert: ta.value } });
+      view.dispatch({ changes: { from: range.from, to: range.to, insert: ta.value } });
     });
 
     const cancel = document.createElement('button');
@@ -139,6 +169,7 @@ class BiliGalleryEditWidget extends WidgetType {
       pokeView(view);
     });
 
+    bar.appendChild(add);
     bar.appendChild(save);
     bar.appendChild(cancel);
     wrap.appendChild(bar);
