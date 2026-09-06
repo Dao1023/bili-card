@@ -6,7 +6,9 @@ Renders one-line Bilibili card tags as card galleries in Obsidian — video card
 
 ## 用法
 
-笔记里写一行一个卡片标签：
+**最快的方式：命令面板 → `Bili Card: 插入 B 站卡片`**，贴入视频链接/BV号或 UP 主空间链接/mid，插件自动拉取标题、封面、播放量等信息并插入卡片（UP 主卡可另填代表作视频链接）。已有画廊右上角也有 `+` 按钮，新卡直接追加到该画廊末尾。
+
+也可以手写，笔记里一行一个卡片标签：
 
 ```html
 <div class="bili-card" data-bvid="BV1xx411c7mD" data-title="视频标题" data-cover="https://i0.hdslb.com/bfs/archive/xxx.jpg" data-duration="03:45" data-views="12.3万" data-likes="1.2万" data-up="UP主名" data-date="2024-01-01"><a href="https://www.bilibili.com/video/BV1xx411c7mD">视频标题</a></div>

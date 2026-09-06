@@ -126,12 +126,37 @@ export function globalCss() {
     transition: opacity 0.15s;
     cursor: pointer;
   }
-  .bili-gallery-widget:hover .bili-gallery-edit {
+  .bili-gallery-widget:hover .bili-gallery-edit,
+  .bili-gallery-widget:hover .bili-gallery-add {
     opacity: 0.8;
   }
-  .bili-gallery-edit:hover {
+  .bili-gallery-edit:hover, .bili-gallery-add:hover {
     opacity: 1 !important;
     color: var(--text-normal);
+  }
+  /* 添加按钮:编辑按钮左边 */
+  .bili-gallery-add {
+    position: absolute;
+    top: 4px;
+    right: 44px;
+    z-index: 10;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-muted);
+    background: var(--background-secondary);
+    opacity: 0;
+    transition: opacity 0.15s;
+    cursor: pointer;
+  }
+  /* URL 弹窗状态行 */
+  .bili-url-modal-status {
+    min-height: 1.4em;
+    margin: 6px 0;
+    color: var(--text-muted);
+    font-size: 13px;
   }
   /* LP 里 Obsidian 自带 html embed 会双渲染卡片行,藏掉(卡片由 gallery widget 负责) */
   .cm-html-embed:has(div.bili-card, div.bili-up-card) {

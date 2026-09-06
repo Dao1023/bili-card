@@ -4,9 +4,14 @@ import { StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType } from '@codemirror/view';
 import { settings, cardHeight, upCardHeight } from './settings.js';
 import { BiliCardRenderer } from './renderer.js';
+import { UrlModal } from './url-modal.js';
 
 // 卡片源码行:一张卡一行,视频卡/UP主卡都认
 export const CARD_LINE_RE = /^\s*<div class="bili-(?:card|up-card)"\s/;
+
+// 插件入口传入的 app 引用(开弹窗用)
+let appRef = null;
+export function setGalleryApp(app) { appRef = app; }
 
 // 正在编辑中的 gallery(键 = 源码文本;编辑只动 textarea,不动文档,所以键稳定)
 const editingGalleries = new Set();
@@ -62,6 +67,21 @@ class BiliGalleryWidget extends WidgetType {
       this.enterEditMode(view);
     });
     container.appendChild(editBtn);
+
+    // 添加卡片按钮:弹窗输 URL,新卡追加到本画廊末尾
+    const addBtn = document.createElement('button');
+    addBtn.className = 'bili-gallery-add';
+    addBtn.textContent = '+';
+    addBtn.title = '添加卡片';
+    addBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!appRef) return;
+      new UrlModal(appRef, (line) => {
+        view.dispatch({ changes: { from: this.to, insert: '\n' + line } });
+      }).open();
+    });
+    container.appendChild(addBtn);
 
     // 点 gallery 空白处进入编辑(卡片自身 mousedown 已 stopPropagation,点卡片 = 开链接)
     container.addEventListener('mousedown', (e) => {
