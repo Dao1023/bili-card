@@ -126,34 +126,12 @@ export function globalCss() {
     transition: opacity 0.15s;
     cursor: pointer;
   }
-  .bili-gallery-widget:hover .bili-gallery-edit,
-  .bili-gallery-widget:hover .bili-gallery-sort {
+  .bili-gallery-widget:hover .bili-gallery-edit {
     opacity: 0.8;
   }
-  .bili-gallery-edit:hover, .bili-gallery-sort:hover {
+  .bili-gallery-edit:hover {
     opacity: 1 !important;
     color: var(--text-normal);
-  }
-  /* 排序按钮:编辑按钮左边 */
-  .bili-gallery-sort {
-    position: absolute;
-    top: 4px;
-    right: 44px;
-    z-index: 10;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 12px;
-    font-family: monospace;
-    color: var(--text-muted);
-    background: var(--background-secondary);
-    opacity: 0;
-    transition: opacity 0.15s;
-    cursor: pointer;
-  }
-  /* 编辑态按钮栏:"通过 URL 添加"居左,完成/取消居右 */
-  .bili-gallery-url-add {
-    margin-right: auto;
   }
   /* URL 弹窗状态行 */
   .bili-url-modal-status {
@@ -183,8 +161,12 @@ export function globalCss() {
   .bili-gallery-editor-bar {
     display: flex;
     gap: 8px;
-    margin-top: 6px;
+    margin-bottom: 6px; /* 栏在顶部 */
     justify-content: flex-end;
+  }
+  /* 完成按钮撑到最右(添加/排序居左) */
+  .bili-gallery-save {
+    margin-left: auto;
   }
   /* 阅读模式/未接管时的兜底:卡片 inline-block 并排 */
   div.bili-card:not(.bili-card-on), div.bili-up-card:not(.bili-card-on) {

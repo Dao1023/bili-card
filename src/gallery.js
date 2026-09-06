@@ -93,33 +93,6 @@ class BiliGalleryWidget extends WidgetType {
     });
     container.appendChild(editBtn);
 
-    // 按日期排序(新→旧):重定位后一次性替换画廊文本
-    const sortBtn = document.createElement('button');
-    sortBtn.className = 'bili-gallery-sort';
-    sortBtn.textContent = '⇅';
-    sortBtn.title = '按日期排序(新→旧;无日期的排最后)';
-    sortBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const range = findGalleryRange(view.state, this.text);
-      if (!range) {
-        new Notice('画廊位置已变化,排序失败,请重试');
-        return;
-      }
-      const dated = [];
-      const undated = [];
-      for (const l of this.text.split('\n')) {
-        if (!CARD_LINE_RE.test(l)) continue;
-        const m = l.match(/data-date="(\d{4}-\d{2}-\d{2})"/);
-        (m ? dated : undated).push({ line: l, date: m ? m[1] : '' });
-      }
-      dated.sort((a, b) => b.date.localeCompare(a.date));
-      const newText = dated.concat(undated).map((x) => x.line).join('\n');
-      if (newText === this.text) return;
-      view.dispatch({ changes: { from: range.from, to: range.to, insert: newText } });
-    });
-    container.appendChild(sortBtn);
-
     // 点 gallery 空白处进入编辑(卡片自身 mousedown 已 stopPropagation,点卡片 = 开链接)
     container.addEventListener('mousedown', (e) => {
       if (e.ctrlKey || e.metaKey) return;
@@ -134,6 +107,18 @@ class BiliGalleryWidget extends WidgetType {
     }
     return container;
   }
+}
+
+// 按日期排序卡片行(新→旧;无日期/非卡片行保持原顺序排最后)
+function sortCardLines(text) {
+  const dated = [];
+  const undated = [];
+  for (const l of text.split('\n')) {
+    const m = CARD_LINE_RE.test(l) && l.match(/data-date="(\d{4}-\d{2}-\d{2})"/);
+    (m ? dated : undated).push({ line: l, date: m ? m[1] : '' });
+  }
+  dated.sort((a, b) => b.date.localeCompare(a.date));
+  return dated.concat(undated).map((x) => x.line).join('\n');
 }
 
 // 编辑态 widget:textarea 持有源码,完成时整体写回文档
@@ -152,20 +137,14 @@ class BiliGalleryEditWidget extends WidgetType {
     const wrap = document.createElement('div');
     wrap.className = 'bili-gallery-editor';
 
-    const ta = document.createElement('textarea');
-    ta.value = this.text;
-    ta.spellcheck = false;
-    ta.rows = Math.min(this.text.split('\n').length + 1, 30);
-    wrap.appendChild(ta);
-
+    // 顶部按钮栏:添加/排序居左,完成/取消居右
     const bar = document.createElement('div');
     bar.className = 'bili-gallery-editor-bar';
 
     // 通过 URL 添加:生成的卡片行先进 textarea,随"完成"一起写回(单一写入路径)
     const add = document.createElement('button');
-    add.className = 'bili-gallery-url-add';
     add.textContent = '通过 URL 添加';
-    add.title = '输入 B 站链接,拉取数据生成卡片行,追加到上方源码末尾';
+    add.title = '输入 B 站链接,拉取数据生成卡片行,追加到下方源码末尾';
     add.addEventListener('click', () => {
       if (!appRef) return;
       new UrlModal(appRef, (line) => {
@@ -174,7 +153,16 @@ class BiliGalleryEditWidget extends WidgetType {
       }).open();
     });
 
+    // 按日期排序:只重排 textarea 内容,点完成才写回
+    const sort = document.createElement('button');
+    sort.textContent = '按日期排序';
+    sort.title = '新→旧;无日期的排最后';
+    sort.addEventListener('click', () => {
+      ta.value = sortCardLines(ta.value);
+    });
+
     const save = document.createElement('button');
+    save.className = 'bili-gallery-save';
     save.textContent = '完成';
     save.addEventListener('click', () => {
       editingGalleries.delete(this.text);
@@ -197,9 +185,17 @@ class BiliGalleryEditWidget extends WidgetType {
     });
 
     bar.appendChild(add);
+    bar.appendChild(sort);
     bar.appendChild(save);
     bar.appendChild(cancel);
     wrap.appendChild(bar);
+
+    const ta = document.createElement('textarea');
+    ta.value = this.text;
+    ta.spellcheck = false;
+    ta.rows = Math.min(this.text.split('\n').length + 1, 30);
+    wrap.appendChild(ta);
+
     return wrap;
   }
 }
