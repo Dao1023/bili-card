@@ -126,12 +126,30 @@ export function globalCss() {
     transition: opacity 0.15s;
     cursor: pointer;
   }
-  .bili-gallery-widget:hover .bili-gallery-edit {
+  .bili-gallery-widget:hover .bili-gallery-edit,
+  .bili-gallery-widget:hover .bili-gallery-sort {
     opacity: 0.8;
   }
-  .bili-gallery-edit:hover {
+  .bili-gallery-edit:hover, .bili-gallery-sort:hover {
     opacity: 1 !important;
     color: var(--text-normal);
+  }
+  /* 排序按钮:编辑按钮左边 */
+  .bili-gallery-sort {
+    position: absolute;
+    top: 4px;
+    right: 44px;
+    z-index: 10;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-muted);
+    background: var(--background-secondary);
+    opacity: 0;
+    transition: opacity 0.15s;
+    cursor: pointer;
   }
   /* 编辑态按钮栏:"通过 URL 添加"居左,完成/取消居右 */
   .bili-gallery-url-add {

@@ -20,7 +20,7 @@ Renders one-line Bilibili card tags as card galleries in Obsidian — video card
 
 UP 主卡可选代表作视频：追加 `data-bvid` / `data-vtitle` / `data-vcover`。
 
-- **Live Preview**：连续的卡片行自动合并成画廊并排显示；点卡片打开链接，点画廊右上角 `</>` 按钮（或空白处）进入源码编辑态，改完"完成"写回。
+- **Live Preview**：连续的卡片行自动合并成画廊并排显示；点卡片打开链接，点画廊右上角 `</>` 按钮（或空白处）进入源码编辑态，改完"完成"写回。编辑态里有"通过 URL 添加"可往当前画廊追加卡片；画廊上的 `⇅` 按钮按发布日期一键排序（新→旧，无日期的排最后）。
 - **阅读模式**：同样渲染成卡片。
 - **无插件环境**（如 Publish）：退化为标签内的普通链接。
 

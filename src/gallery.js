@@ -93,6 +93,33 @@ class BiliGalleryWidget extends WidgetType {
     });
     container.appendChild(editBtn);
 
+    // 按日期排序(新→旧):重定位后一次性替换画廊文本
+    const sortBtn = document.createElement('button');
+    sortBtn.className = 'bili-gallery-sort';
+    sortBtn.textContent = '⇅';
+    sortBtn.title = '按日期排序(新→旧;无日期的排最后)';
+    sortBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const range = findGalleryRange(view.state, this.text);
+      if (!range) {
+        new Notice('画廊位置已变化,排序失败,请重试');
+        return;
+      }
+      const dated = [];
+      const undated = [];
+      for (const l of this.text.split('\n')) {
+        if (!CARD_LINE_RE.test(l)) continue;
+        const m = l.match(/data-date="(\d{4}-\d{2}-\d{2})"/);
+        (m ? dated : undated).push({ line: l, date: m ? m[1] : '' });
+      }
+      dated.sort((a, b) => b.date.localeCompare(a.date));
+      const newText = dated.concat(undated).map((x) => x.line).join('\n');
+      if (newText === this.text) return;
+      view.dispatch({ changes: { from: range.from, to: range.to, insert: newText } });
+    });
+    container.appendChild(sortBtn);
+
     // 点 gallery 空白处进入编辑(卡片自身 mousedown 已 stopPropagation,点卡片 = 开链接)
     container.addEventListener('mousedown', (e) => {
       if (e.ctrlKey || e.metaKey) return;
