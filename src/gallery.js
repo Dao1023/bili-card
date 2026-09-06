@@ -109,16 +109,27 @@ class BiliGalleryWidget extends WidgetType {
   }
 }
 
-// 按日期排序卡片行(新→旧;无日期/非卡片行保持原顺序排最后)
-function sortCardLines(text) {
+// 按日期排序卡片行;无日期/非卡片行保持原顺序排最后
+function sortCardLines(text, asc) {
   const dated = [];
   const undated = [];
   for (const l of text.split('\n')) {
     const m = CARD_LINE_RE.test(l) && l.match(/data-date="(\d{4}-\d{2}-\d{2})"/);
     (m ? dated : undated).push({ line: l, date: m ? m[1] : '' });
   }
-  dated.sort((a, b) => b.date.localeCompare(a.date));
+  dated.sort((a, b) => asc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
   return dated.concat(undated).map((x) => x.line).join('\n');
+}
+
+// 判断当前顺序(看前两张有日期的卡),用于排序按钮往复切换
+function isDescSorted(text) {
+  const dates = [];
+  for (const l of text.split('\n')) {
+    const m = CARD_LINE_RE.test(l) && l.match(/data-date="(\d{4}-\d{2}-\d{2})"/);
+    if (m) dates.push(m[1]);
+    if (dates.length >= 2) break;
+  }
+  return dates.length >= 2 && dates[0] >= dates[1];
 }
 
 // 编辑态 widget:textarea 持有源码,完成时整体写回文档
@@ -153,12 +164,12 @@ class BiliGalleryEditWidget extends WidgetType {
       }).open();
     });
 
-    // 按日期排序:只重排 textarea 内容,点完成才写回
+    // 按日期排序:只重排 textarea 内容,点完成才写回;已是逆序则切换为顺序
     const sort = document.createElement('button');
     sort.textContent = '按日期排序';
-    sort.title = '新→旧;无日期的排最后';
+    sort.title = '往复切换:新→旧 / 旧→新;无日期的排最后';
     sort.addEventListener('click', () => {
-      ta.value = sortCardLines(ta.value);
+      ta.value = sortCardLines(ta.value, isDescSorted(ta.value));
     });
 
     const save = document.createElement('button');

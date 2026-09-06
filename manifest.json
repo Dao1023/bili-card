@@ -1,7 +1,7 @@
 {
   "id": "bili-card",
   "name": "Bili Card",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "minAppVersion": "1.4.0",
   "description": "Renders div.bili-card / div.bili-up-card one-liners as Bilibili video & UP-owner card galleries. Data lives in data-* attributes; template, styles and layout settings live here.",
   "author": "Dao1023",
