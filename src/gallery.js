@@ -134,6 +134,20 @@ function isDescSorted(text) {
   return dates.length >= 2 && dates[0] >= dates[1];
 }
 
+// 卡片行 → 纯 markdown 链接(转回普通排版用);非卡片行原样返回
+function cardLineToLink(line) {
+  if (!CARD_LINE_RE.test(line)) return line;
+  const doc = new DOMParser().parseFromString(line, 'text/html');
+  const el = doc.querySelector('div.bili-card, div.bili-up-card');
+  if (!el) return line;
+  const d = el.dataset;
+  const esc = (s) => (s || '').replace(/[[\]]/g, '');
+  if (el.classList.contains('bili-up-card')) {
+    return `[${esc(d.name)}](https://space.bilibili.com/${d.mid})`;
+  }
+  return `[${esc(d.title)}](https://www.bilibili.com/video/${d.bvid})`;
+}
+
 // 编辑态 widget:textarea 持有源码,完成时整体写回文档
 class BiliGalleryEditWidget extends WidgetType {
   constructor(text, from, to, galleryHeight) {
@@ -181,6 +195,14 @@ class BiliGalleryEditWidget extends WidgetType {
       ta.value = sortCardLines(ta.value, isDescSorted(ta.value));
     });
 
+    // 转回链接:卡片 div 还原成 [标题](链接) 纯文本行,写回后画廊消失
+    const unlink = document.createElement('button');
+    unlink.textContent = '转回链接';
+    unlink.title = '把所有卡片还原成普通 markdown 链接(放弃卡片样式)';
+    unlink.addEventListener('click', () => {
+      ta.value = ta.value.split('\n').map(cardLineToLink).join('\n');
+    });
+
     const save = document.createElement('button');
     save.className = 'bili-gallery-save';
     save.textContent = '完成';
@@ -206,6 +228,7 @@ class BiliGalleryEditWidget extends WidgetType {
 
     bar.appendChild(add);
     bar.appendChild(sort);
+    bar.appendChild(unlink);
     bar.appendChild(save);
     bar.appendChild(cancel);
     wrap.appendChild(bar);
