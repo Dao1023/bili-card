@@ -61,7 +61,7 @@ export class BiliCardSettingTab extends PluginSettingTab {
           await this.plugin.applySettings();
         }));
 
-    this.numSetting(containerEl, '文本上下间距', '卡片内文本块的纵向 padding(px),默认 12。调小卡片更紧凑,填 0 贴边', 'textPadding', '12', 0);
+    this.numSetting(containerEl, '文本上下间距', '卡片文本块的纵向间距基准(px),默认 12:文本块上下 padding = 它,标题/UP主行距按 2/3、1/2 跟随。调小卡片更紧凑', 'textPadding', '12', 0);
 
     // ===== UP主卡 =====
     containerEl.createEl('h3', { text: 'UP主卡' });

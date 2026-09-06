@@ -45,7 +45,7 @@ export function cardCss() {
     font-size: ${s.cardSize}px; font-weight: 600;
     color: var(--text-normal);
     text-decoration: none; display: block;
-    margin-bottom: 8px; line-height: 1.4;
+    margin-bottom: ${Math.round(s.textPadding * 2 / 3)}px; line-height: 1.4;
     ${fixedTitle ? `min-height: ${titleBlockHeight()}px; /* 固定标题高度,卡片总高恒定,网格整齐且不抖动 */` : ''}
     overflow: hidden; text-overflow: ellipsis;
     display: -webkit-box; -webkit-line-clamp: ${fixedTitle ? s.titleLines : 'unset'}; -webkit-box-orient: vertical;
@@ -59,7 +59,7 @@ export function cardCss() {
   .stat { display: flex; align-items: center; gap: 4px; }
   .stat svg { width: 1em; height: 1em; fill: currentColor; }
   .up {
-    margin-top: 6px; color: var(--text-muted); font-size: 0.86em;
+    margin-top: ${Math.round(s.textPadding / 2)}px; color: var(--text-muted); font-size: 0.86em;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   /* ===== UP主卡 ===== */
@@ -91,7 +91,7 @@ export function cardCss() {
   .up-vtitle {
     display: -webkit-box; -webkit-line-clamp: ${fixedTitle ? s.titleLines : 'unset'}; -webkit-box-orient: vertical;
     overflow: hidden; text-overflow: ellipsis;
-    padding: 8px 14px ${s.textPadding}px; line-height: 1.4;
+    padding: ${Math.round(s.textPadding * 2 / 3)}px 14px ${s.textPadding}px; line-height: 1.4;
     font-size: 0.93em; color: var(--text-normal); text-decoration: none;
   }
   .up-vtitle:hover { color: var(--accent-color); }
