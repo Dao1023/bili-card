@@ -39,8 +39,9 @@ function findGalleryRange(state, text) {
 }
 
 // 正在编辑中的 gallery:text → 画廊 DOM 高度(px)。
-// 记高度是为了让编辑态 textarea 撑到同高:画廊和编辑框高度差太大时,
-// 切换瞬间下方内容会上移/回跳,视口跟着跳。
+// 记高度是为了让编辑态块占住同样的高度:画廊(常有几千像素)和编辑框
+// (几百像素)高度差大,切换瞬间 CM6 高度图重算会带着视口跳;
+// 块高度不变 = 下方内容不动 = 不跳。
 const editingGalleries = new Map();
 
 // 强制装饰重建的信号
@@ -159,7 +160,7 @@ class BiliGalleryEditWidget extends WidgetType {
     this.isEdit = true;
   }
   eq(other) { return other.isEdit && other.text === this.text; }
-  // 高度取 textarea 估算和画廊实测的较大者,切换时视口不跳
+  // 块高度 = max(textarea 估算, 画廊实测):和画廊一致,切换时视口不跳
   get estimatedHeight() {
     return Math.max(
       Math.round(this.text.split('\n').length * settings.editorSize * 1.6 + 90),
@@ -170,6 +171,10 @@ class BiliGalleryEditWidget extends WidgetType {
   toDOM(view) {
     const wrap = document.createElement('div');
     wrap.className = 'bili-gallery-editor';
+    // 外层占住画廊原高度;textareda 保持紧凑,下面是留白
+    if (this.galleryHeight > 0) {
+      wrap.style.minHeight = `${this.galleryHeight}px`;
+    }
 
     // 顶部按钮栏:添加/排序居左,完成/取消居右
     const bar = document.createElement('div');
@@ -237,11 +242,6 @@ class BiliGalleryEditWidget extends WidgetType {
     ta.value = this.text;
     ta.spellcheck = false;
     ta.rows = Math.min(this.text.split('\n').length + 1, 30);
-    // 撑到画廊原高度,进出编辑态页面不跳(不封顶:画廊几千像素时,
-    // 高度差越大跳得越狠;textarea 内部自有滚动条,高一点无碍)
-    if (this.galleryHeight > 0) {
-      ta.style.minHeight = `${this.galleryHeight}px`;
-    }
     wrap.appendChild(ta);
 
     return wrap;
