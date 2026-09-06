@@ -6,6 +6,7 @@ import { Notice } from 'obsidian';
 import { settings, cardHeight, upCardHeight } from './settings.js';
 import { BiliCardRenderer } from './renderer.js';
 import { UrlModal } from './url-modal.js';
+import { SourceEditor } from './source-editor.js';
 
 // 卡片源码行:一张卡一行,视频卡/UP主卡都认
 export const CARD_LINE_RE = /^\s*<div class="bili-(?:card|up-card)"\s/;
@@ -149,7 +150,7 @@ function cardLineToLink(line) {
   return `[${esc(d.title)}](https://www.bilibili.com/video/${d.bvid})`;
 }
 
-// 编辑态 widget:textarea 持有源码,完成时整体写回文档
+// 编辑态 widget:内嵌 CodeMirror 持有源码,完成时整体写回文档
 class BiliGalleryEditWidget extends WidgetType {
   constructor(text, from, to, galleryHeight) {
     super();
@@ -171,7 +172,7 @@ class BiliGalleryEditWidget extends WidgetType {
   toDOM(view) {
     const wrap = document.createElement('div');
     wrap.className = 'bili-gallery-editor';
-    // 外层占住画廊原高度;textareda 保持紧凑,下面是留白
+    // 外层占住画廊原高度;内嵌 CM 编辑器保持紧凑,下面是留白
     if (this.galleryHeight > 0) {
       wrap.style.minHeight = `${this.galleryHeight}px`;
     }
@@ -180,24 +181,24 @@ class BiliGalleryEditWidget extends WidgetType {
     const bar = document.createElement('div');
     bar.className = 'bili-gallery-editor-bar';
 
-    // 通过 URL 添加:生成的卡片行先进 textarea,随"完成"一起写回(单一写入路径)
+    // 通过 URL 添加:生成的卡片行先进编辑器,随"完成"一起写回(单一写入路径)
     const add = document.createElement('button');
     add.textContent = '通过 URL 添加';
     add.title = '输入 B 站链接,拉取数据生成卡片行,追加到下方源码末尾';
     add.addEventListener('click', () => {
       if (!appRef) return;
       new UrlModal(appRef, (line) => {
-        ta.value = ta.value.replace(/\s+$/, '') + '\n' + line;
-        ta.scrollTop = ta.scrollHeight;
+        se.value = se.value.replace(/\s+$/, '') + '\n' + line;
+        se.scrollToEnd();
       }).open();
     });
 
-    // 按日期排序:只重排 textarea 内容,点完成才写回;已是逆序则切换为顺序
+    // 按日期排序:只重排编辑器内容,点完成才写回;已是逆序则切换为顺序
     const sort = document.createElement('button');
     sort.textContent = '按日期排序';
     sort.title = '往复切换:新→旧 / 旧→新;无日期的排最后';
     sort.addEventListener('click', () => {
-      ta.value = sortCardLines(ta.value, isDescSorted(ta.value));
+      se.value = sortCardLines(se.value, isDescSorted(se.value));
     });
 
     // 转回链接:卡片 div 还原成 [标题](链接) 纯文本行,写回后画廊消失
@@ -205,7 +206,7 @@ class BiliGalleryEditWidget extends WidgetType {
     unlink.textContent = '转回链接';
     unlink.title = '把所有卡片还原成普通 markdown 链接(放弃卡片样式)';
     unlink.addEventListener('click', () => {
-      ta.value = ta.value.split('\n').map(cardLineToLink).join('\n');
+      se.value = se.value.split('\n').map(cardLineToLink).join('\n');
     });
 
     const save = document.createElement('button');
@@ -221,7 +222,7 @@ class BiliGalleryEditWidget extends WidgetType {
         return;
       }
       // 整体写回(一次性替换,避免中间态)
-      view.dispatch({ changes: { from: range.from, to: range.to, insert: ta.value } });
+      view.dispatch({ changes: { from: range.from, to: range.to, insert: se.value } });
     });
 
     const cancel = document.createElement('button');
@@ -238,13 +239,19 @@ class BiliGalleryEditWidget extends WidgetType {
     bar.appendChild(cancel);
     wrap.appendChild(bar);
 
-    const ta = document.createElement('textarea');
-    ta.value = this.text;
-    ta.spellcheck = false;
-    ta.rows = Math.min(this.text.split('\n').length + 1, 30);
-    wrap.appendChild(ta);
+    // 内嵌迷你 CodeMirror(HTML 高亮);widget 销毁时 destroy 清掉
+    const se = new SourceEditor(wrap, this.text);
+    this.editor = se;
 
     return wrap;
+  }
+
+  destroy(dom) {
+    if (this.editor) {
+      this.editor.destroy();
+      this.editor = null;
+    }
+    super.destroy(dom);
   }
 }
 

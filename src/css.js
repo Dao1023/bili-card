@@ -162,19 +162,9 @@ export function globalCss() {
   .cm-html-embed:has(div.bili-card, div.bili-up-card) {
     display: none !important;
   }
-  /* 编辑态:源码 textarea */
-  .bili-gallery-editor textarea {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: ${s.editorFont || 'var(--font-monospace)'};
-    font-size: ${s.editorSize}px;
-    line-height: 1.6;
-    padding: 10px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background: var(--background-primary);
-    color: var(--text-normal);
-    resize: vertical;
+  /* 编辑态:内嵌 CodeMirror(字号/边框等在 source-editor.js 的 theme 里) */
+  .bili-gallery-editor .cm-editor .cm-content {
+    padding: 8px 4px;
   }
   .bili-gallery-editor-bar {
     display: flex;

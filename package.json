@@ -1,6 +1,6 @@
 {
   "name": "bili-card",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "Render one-line bilibili video/UP cards as card galleries in Obsidian",
   "private": true,
   "scripts": {
@@ -10,5 +10,8 @@
   "devDependencies": {
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.20.0"
+  },
+  "dependencies": {
+    "@codemirror/lang-html": "^6.4.12"
   }
 }

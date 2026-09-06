@@ -89,7 +89,7 @@ export class BiliCardSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('编辑器字体')
-      .setDesc('点卡片进入编辑态后 textarea 的 font-family。留空用等宽字体')
+      .setDesc('点卡片进入编辑态后源码编辑器的 font-family。留空用等宽字体')
       .addText((t) => t
         .setPlaceholder('等宽字体')
         .setValue(settings.editorFont)
@@ -98,6 +98,6 @@ export class BiliCardSettingTab extends PluginSettingTab {
           await this.plugin.applySettings();
         }));
 
-    this.numSetting(containerEl, '编辑器字号', '编辑态 textarea 的字号(px),默认 13', 'editorSize', '13', 1);
+    this.numSetting(containerEl, '编辑器字号', '编辑态源码编辑器的字号(px),默认 13', 'editorSize', '13', 1);
   }
 }
