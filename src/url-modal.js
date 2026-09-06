@@ -1,11 +1,11 @@
-// ========== 输 URL 生成卡片的弹窗 ==========
+// ========== 输 URL 生成卡片的弹窗(支持批量,每行一个链接) ==========
 
 import { Modal, Notice, Setting } from 'obsidian';
 import { parseBiliUrl, fetchVideo, fetchUp, videoCardLine, upCardLine } from './fetch.js';
 
 export class UrlModal extends Modal {
   /**
-   * @param onInsert (line: string) => void  生成成功后由调用方决定插到哪
+   * @param onInsert (text: string) => void  生成成功后由调用方决定插到哪;批量时 text 是多行
    */
   constructor(app, onInsert) {
     super(app);
@@ -17,22 +17,17 @@ export class UrlModal extends Modal {
     contentEl.empty();
     contentEl.createEl('h3', { text: '插入 B 站卡片' });
 
-    let urlInput;
-    new Setting(contentEl)
-      .setName('链接')
-      .setDesc('视频链接 / BV号,或 UP主空间链接 / mid')
-      .addText((t) => {
-        urlInput = t;
-        t.setPlaceholder('https://www.bilibili.com/video/BV… 或 space.bilibili.com/…');
-        t.inputEl.style.width = '100%';
-        t.inputEl.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') { e.preventDefault(); this.submit(); }
-        });
-      });
+    contentEl.createDiv({ text: '链接(每行一个,支持批量)', cls: 'bili-url-modal-label' });
+    this.urlsEl = contentEl.createEl('textarea', { cls: 'bili-url-modal-input' });
+    this.urlsEl.placeholder = 'https://www.bilibili.com/video/BV… 或 space.bilibili.com/…\n批量时每行一个链接';
+    this.urlsEl.rows = 4;
+    this.urlsEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.submit(); }
+    });
 
     new Setting(contentEl)
       .setName('代表作视频')
-      .setDesc('仅 UP主卡:可选,填一个代表作视频链接')
+      .setDesc('仅单条 UP主卡生效:可选,填一个代表作视频链接')
       .addText((t) => {
         this.vurlInput = t;
         t.setPlaceholder('可空');
@@ -55,41 +50,62 @@ export class UrlModal extends Modal {
     if (navigator.clipboard && navigator.clipboard.readText) {
       navigator.clipboard.readText().then((t) => {
         const c = (t || '').trim();
-        if (c && c.length < 120 && !/[\s<>]/.test(c) && parseBiliUrl(c) && !urlInput.getValue()) {
-          urlInput.setValue(c);
+        if (c && c.length < 120 && !/[\s<>]/.test(c) && parseBiliUrl(c) && !this.urlsEl.value) {
+          this.urlsEl.value = c;
         }
       }).catch(() => { /* 读不到就算了 */ });
     }
-    window.setTimeout(() => urlInput.inputEl.focus(), 50);
+    window.setTimeout(() => this.urlsEl.focus(), 50);
   }
 
   async submit() {
-    const parsed = parseBiliUrl(this.contentEl.querySelector('input').value);
-    if (!parsed) {
-      this.statusEl.setText('不是有效的 B 站链接(视频 / BV号 / 空间链接 / mid)');
+    const urls = this.urlsEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (!urls.length) {
+      this.statusEl.setText('请输入链接');
       return;
     }
-    this.statusEl.setText('拉取数据中…');
-    try {
-      let line;
-      if (parsed.type === 'video') {
-        line = videoCardLine(await fetchVideo(parsed.bvid));
-      } else {
-        const up = await fetchUp(parsed.mid);
-        const vurl = this.vurlInput.getValue().trim();
-        let video = null;
-        if (vurl) {
-          const vp = parseBiliUrl(vurl);
-          if (!vp || vp.type !== 'video') throw new Error('代表作不是视频链接');
-          video = await fetchVideo(vp.bvid);
-        }
-        line = upCardLine(up, video);
-      }
-      this.onInsert(line);
-      this.close();
-    } catch (e) {
-      this.statusEl.setText(`失败:${e.message}`);
-      new Notice(`B站卡片生成失败:${e.message}`);
+    const parsed = urls.map((u) => ({ u, p: parseBiliUrl(u) }));
+    const bad = parsed.find((x) => !x.p);
+    if (bad) {
+      this.statusEl.setText(`无法识别: ${bad.u.slice(0, 50)}`);
+      return;
     }
+
+    const single = parsed.length === 1;
+    const lines = [];
+    let failed = 0;
+    for (let i = 0; i < parsed.length; i++) {
+      const { u, p } = parsed[i];
+      this.statusEl.setText(`拉取数据中… ${i + 1}/${parsed.length}`);
+      try {
+        if (p.type === 'video') {
+          lines.push(videoCardLine(await fetchVideo(p.bvid)));
+        } else {
+          const up = await fetchUp(p.mid);
+          let video = null;
+          if (single) {
+            const vurl = this.vurlInput.getValue().trim();
+            if (vurl) {
+              const vp = parseBiliUrl(vurl);
+              if (!vp || vp.type !== 'video') throw new Error('代表作不是视频链接');
+              video = await fetchVideo(vp.bvid);
+            }
+          }
+          lines.push(upCardLine(up, video));
+        }
+      } catch (e) {
+        failed++;
+        console.warn('[bili-card] 拉取失败:', u, e);
+      }
+      if (i < parsed.length - 1) await new Promise((r) => setTimeout(r, 400));
+    }
+
+    if (!lines.length) {
+      this.statusEl.setText('全部失败,请检查网络或链接');
+      return;
+    }
+    this.onInsert(lines.join('\n'));
+    if (failed) new Notice(`已插入 ${lines.length} 张,${failed} 条失败被跳过`);
+    this.close();
   }
 }

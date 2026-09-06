@@ -140,6 +140,24 @@ export function globalCss() {
     color: var(--text-muted);
     font-size: 13px;
   }
+  /* URL 弹窗:多行链接输入框 */
+  .bili-url-modal-label {
+    margin-bottom: 4px;
+    color: var(--text-normal);
+  }
+  .bili-url-modal-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+    padding: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: var(--background-primary);
+    color: var(--text-normal);
+    resize: vertical;
+    margin-bottom: 6px;
+  }
   /* LP 里 Obsidian 自带 html embed 会双渲染卡片行,藏掉(卡片由 gallery widget 负责) */
   .cm-html-embed:has(div.bili-card, div.bili-up-card) {
     display: none !important;

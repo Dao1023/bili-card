@@ -38,8 +38,10 @@ function findGalleryRange(state, text) {
   return found;
 }
 
-// 正在编辑中的 gallery(键 = 源码文本;编辑只动 textarea,不动文档,所以键稳定)
-const editingGalleries = new Set();
+// 正在编辑中的 gallery:text → 画廊 DOM 高度(px)。
+// 记高度是为了让编辑态 textarea 撑到同高:画廊和编辑框高度差太大时,
+// 切换瞬间下方内容会上移/回跳,视口跟着跳。
+const editingGalleries = new Map();
 
 // 强制装饰重建的信号
 const rebuildEffect = StateEffect.define();
@@ -72,8 +74,8 @@ class BiliGalleryWidget extends WidgetType {
     return Math.ceil(this.cardCount / 3) * (maxH + settings.gap * 2);
   }
 
-  enterEditMode(view) {
-    editingGalleries.add(this.text);
+  enterEditMode(view, el) {
+    editingGalleries.set(this.text, el ? el.offsetHeight : 0);
     pokeView(view);
   }
 
@@ -89,7 +91,7 @@ class BiliGalleryWidget extends WidgetType {
     editBtn.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      this.enterEditMode(view);
+      this.enterEditMode(view, container);
     });
     container.appendChild(editBtn);
 
@@ -97,7 +99,7 @@ class BiliGalleryWidget extends WidgetType {
     container.addEventListener('mousedown', (e) => {
       if (e.ctrlKey || e.metaKey) return;
       e.preventDefault();
-      this.enterEditMode(view);
+      this.enterEditMode(view, container);
     });
 
     for (const line of this.text.split('\n')) {
@@ -134,15 +136,22 @@ function isDescSorted(text) {
 
 // 编辑态 widget:textarea 持有源码,完成时整体写回文档
 class BiliGalleryEditWidget extends WidgetType {
-  constructor(text, from, to) {
+  constructor(text, from, to, galleryHeight) {
     super();
     this.text = text;
     this.from = from;
     this.to = to;
+    this.galleryHeight = galleryHeight || 0;
     this.isEdit = true;
   }
   eq(other) { return other.isEdit && other.text === this.text; }
-  get estimatedHeight() { return Math.round(this.text.split('\n').length * settings.editorSize * 1.6 + 90); }
+  // 高度取 textarea 估算和画廊实测的较大者,切换时视口不跳
+  get estimatedHeight() {
+    return Math.max(
+      Math.round(this.text.split('\n').length * settings.editorSize * 1.6 + 90),
+      this.galleryHeight
+    );
+  }
 
   toDOM(view) {
     const wrap = document.createElement('div');
@@ -205,6 +214,11 @@ class BiliGalleryEditWidget extends WidgetType {
     ta.value = this.text;
     ta.spellcheck = false;
     ta.rows = Math.min(this.text.split('\n').length + 1, 30);
+    // 撑到画廊原高度,进出编辑态页面不跳(不封顶:画廊几千像素时,
+    // 高度差越大跳得越狠;textarea 内部自有滚动条,高一点无碍)
+    if (this.galleryHeight > 0) {
+      ta.style.minHeight = `${this.galleryHeight}px`;
+    }
     wrap.appendChild(ta);
 
     return wrap;
@@ -219,7 +233,7 @@ function buildGalleryDeco(state) {
     const text = state.doc.sliceString(start, end);
     // 编辑中的 gallery 换成 textarea 编辑器(选中态判断不可行:Obsidian 自带 embed 会盖住源码行)
     const widget = editingGalleries.has(text)
-      ? new BiliGalleryEditWidget(text, start, end)
+      ? new BiliGalleryEditWidget(text, start, end, editingGalleries.get(text))
       : new BiliGalleryWidget(text, count, start, end);
     ranges.push(Decoration.replace({ widget, block: true }).range(start, end));
     start = -1; count = 0;
