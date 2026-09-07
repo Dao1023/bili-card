@@ -14,12 +14,6 @@
 
 Paste a Bilibili link, get a beautiful card. Video cards (cover · duration · views · likes · uploader · date) and UP-owner cards (avatar · fans · featured video), fetched and laid out automatically.
 
-## 效果预览
-
-<p>
-  <img src="docs/images/gallery.png" alt="视频卡画廊" width="720">
-</p>
-
 - **视频卡**:封面 + 时长角标 + 标题 + 播放量/点赞 + UP 主 + 发布日期
 - **UP 主卡**:头像 + 昵称 + 粉丝数,可挂代表作视频
 - **Live Preview / 阅读模式**都渲染;无插件环境(如 Publish)退化为普通链接,笔记永不锁死
