@@ -2,9 +2,11 @@
 
 # Bili Card · B 站卡片
 
-**贴个链接,就是一张卡片。**
+**让 Obsidian 插入 B 站视频卡片。**
 
-把 B 站视频 / UP 主收藏成 Obsidian 里的卡片画廊 —— 封面、时长、播放量、点赞、UP 主、日期,自动拉取,自动排版。
+贴个链接,笔记里就多一张卡:封面、时长、播放量、点赞、UP 主、日期,自动拉取,自动排版。
+
+一段文字配一张卡,是在做笔记;一排卡连成画廊,是收藏夹搬到了库里。
 
 <img src="docs/images/banner.png" alt="Bili Card" width="100%">
 
@@ -17,6 +19,21 @@
 </div>
 
 ---
+
+## 📝 用在哪
+
+<table>
+<tr>
+<td width="62%" valign="top">
+<img src="docs/images/case-notes.png" width="100%">
+<b>做笔记</b>:卡片嵌在文字旁边,视频出处和笔记上下文在一起
+</td>
+<td width="38%" valign="top">
+<img src="docs/images/case-gallery.png" width="100%">
+<b>收藏视频</b>:几十张卡自动排成一面好逛的画廊墙
+</td>
+</tr>
+</table>
 
 ## ✨ 一眼看懂
 
