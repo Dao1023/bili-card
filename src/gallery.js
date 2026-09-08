@@ -15,7 +15,7 @@ export const CARD_LINE_RE = /^\s*<div class="bili-(?:card|up-card)"\s/;
 let appRef = null;
 export function setGalleryApp(app) { appRef = app; }
 
-// 在【当前文档】里重新定位画廊范围。
+// 在【当前文档】里重新定位画廊的【内容范围】(纯卡片行,不含借来的邻居字符)。
 // widget 缓存的 from/to 会在弹窗异步期间因文档变动而漂移,
 // 往漂移位置写会吞掉正文——所有写操作必须先用这个重定位。
 function findGalleryRange(state, text) {
@@ -23,8 +23,7 @@ function findGalleryRange(state, text) {
   let found = null;
   const flush = () => {
     if (start < 0) return;
-    const range = extendedRange(state, start, end);
-    if (state.doc.sliceString(range.from, range.to) === text) found = range;
+    if (state.doc.sliceString(start, end) === text) found = { from: start, to: end };
     start = -1;
   };
   for (let i = 1; i <= state.doc.lines; i++) {
@@ -40,34 +39,17 @@ function findGalleryRange(state, text) {
   return found;
 }
 
-// 把画廊范围扩成【严格大于】卡片文本行的范围。
-// 单卡时 Obsidian 内置的 html-embed 装饰和我们的装饰范围完全重合(都是卡片行),
-// 重合冲突下我们的 block widget 不挂载(单卡空白 bug);多卡连排时我们是一整块、
-// embed 是一行一节,大块包小节所以能赢。这里单卡也扩成"大包小":
-// 优先吞前导空白行,否则吞后随空白行,兜底再吞行尾换行。
-// 扩展方式必须处处一致(buildGalleryDeco / findGalleryRange 都用它),
-// 因为 widget.text 就是扩展后范围的切片,编辑写回要靠它重定位。
+// 把画廊【内容范围】扩成【严格大于】卡片文本行的竞争范围。
+// 实测 Obsidian 内置 html-embed 的装饰范围恒为卡片文本本体、不含任何换行,
+// 所以只需吞卡片行自己的行尾换行即严格大于,空行/邻行一律不碰。
+// 唯一兜底:卡片在文档末尾、无换行可吞时,咬前一行的行尾换行。
+// 注意:这是纯装饰层的竞争筹码,和用户内容无关——widget.text、编辑、写回
+// 一律只认未扩展的内容范围,借来的字符永不渗进用户可见/可改的状态。
 function extendedRange(state, start, end) {
   let from = start, to = end;
-  if (from > 0) {
-    const prev = state.doc.lineAt(from - 1);
-    if (prev.to + 1 === from && prev.text.trim() === '') from = prev.from;
-  }
-  if (from === start && to < state.doc.length && state.doc.sliceString(to, to + 1) === '\n') {
-    // 没有前导空白行可吞:吞后随空白行
-    const next = state.doc.lineAt(to + 1);
-    if (next.from === to + 1 && next.text.trim() === '') {
-      to = next.to < state.doc.length ? next.to + 1 : next.to;
-    } else {
-      to = to + 1;
-    }
-  } else if (to < state.doc.length && state.doc.sliceString(to, to + 1) === '\n') {
+  if (to < state.doc.length && state.doc.sliceString(to, to + 1) === '\n') {
     to = to + 1;
-  }
-  // 没吞到前导空白行(卡片紧跟文字或顶在文档开头下方的文字后):embed 的范围
-  // 可能带行尾换行,只吞自己的换行仍和它打平;这里再向前咬一个字符(前一行的
-  // 行尾换行),依然严格大于。卡片是文档首行时无处可咬,那种情况接受打平。
-  if (from === start && from > 0 && state.doc.sliceString(from - 1, from) === '\n') {
+  } else if (from > 0 && state.doc.sliceString(from - 1, from) === '\n') {
     from = from - 1;
   }
   return { from, to };
@@ -297,12 +279,13 @@ function buildGalleryDeco(state) {
   let start = -1, end = -1, count = 0;
   const flush = () => {
     if (start < 0) return;
+    // 双范围解耦:text/from/to 都是纯卡片行(内容),扩展只用于 Decoration.replace(竞争)
+    const text = state.doc.sliceString(start, end);
     const range = extendedRange(state, start, end);
-    const text = state.doc.sliceString(range.from, range.to);
     // 编辑中的 gallery 换成 textarea 编辑器(选中态判断不可行:Obsidian 自带 embed 会盖住源码行)
     const widget = editingGalleries.has(text)
-      ? new BiliGalleryEditWidget(text, range.from, range.to, editingGalleries.get(text))
-      : new BiliGalleryWidget(text, count, range.from, range.to);
+      ? new BiliGalleryEditWidget(text, start, end, editingGalleries.get(text))
+      : new BiliGalleryWidget(text, count, start, end);
     ranges.push(Decoration.replace({ widget, block: true }).range(range.from, range.to));
     start = -1; count = 0;
   };
