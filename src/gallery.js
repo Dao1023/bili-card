@@ -23,7 +23,8 @@ function findGalleryRange(state, text) {
   let found = null;
   const flush = () => {
     if (start < 0) return;
-    if (state.doc.sliceString(start, end) === text) found = { from: start, to: end };
+    const range = extendedRange(state, start, end);
+    if (state.doc.sliceString(range.from, range.to) === text) found = range;
     start = -1;
   };
   for (let i = 1; i <= state.doc.lines; i++) {
@@ -37,6 +38,33 @@ function findGalleryRange(state, text) {
   }
   flush();
   return found;
+}
+
+// 把画廊范围扩成【严格大于】卡片文本行的范围。
+// 单卡时 Obsidian 内置的 html-embed 装饰和我们的装饰范围完全重合(都是卡片行),
+// 重合冲突下我们的 block widget 不挂载(单卡空白 bug);多卡连排时我们是一整块、
+// embed 是一行一节,大块包小节所以能赢。这里单卡也扩成"大包小":
+// 优先吞前导空白行,否则吞后随空白行,兜底再吞行尾换行。
+// 扩展方式必须处处一致(buildGalleryDeco / findGalleryRange 都用它),
+// 因为 widget.text 就是扩展后范围的切片,编辑写回要靠它重定位。
+function extendedRange(state, start, end) {
+  let from = start, to = end;
+  if (from > 0) {
+    const prev = state.doc.lineAt(from - 1);
+    if (prev.to + 1 === from && prev.text.trim() === '') from = prev.from;
+  }
+  if (from === start && to < state.doc.length && state.doc.sliceString(to, to + 1) === '\n') {
+    // 没有前导空白行可吞:吞后随空白行
+    const next = state.doc.lineAt(to + 1);
+    if (next.from === to + 1 && next.text.trim() === '') {
+      to = next.to < state.doc.length ? next.to + 1 : next.to;
+    } else {
+      to = to + 1;
+    }
+  } else if (to < state.doc.length && state.doc.sliceString(to, to + 1) === '\n') {
+    to = to + 1;
+  }
+  return { from, to };
 }
 
 // 正在编辑中的 gallery:text → 画廊 DOM 高度(px)。
@@ -84,6 +112,10 @@ class BiliGalleryWidget extends WidgetType {
   toDOM(view) {
     const container = document.createElement('div');
     container.className = 'bili-gallery-widget';
+    // 关键兜底:后台/隐藏状态下构造的编辑器可能把 widget 测成 0 高,
+    // 高度图记下 0 后该块被踢出可视范围、永远不画(空白缝,点击重测才好)。
+    // min-height = 估算高度,保证入账高度恒 > 0,块永远算可见。
+    container.style.minHeight = `${this.estimatedHeight}px`;
 
     // 右上角编辑按钮(和 Obsidian 自带 embed 的习惯一致)
     const editBtn = document.createElement('button');
@@ -260,12 +292,13 @@ function buildGalleryDeco(state) {
   let start = -1, end = -1, count = 0;
   const flush = () => {
     if (start < 0) return;
-    const text = state.doc.sliceString(start, end);
+    const range = extendedRange(state, start, end);
+    const text = state.doc.sliceString(range.from, range.to);
     // 编辑中的 gallery 换成 textarea 编辑器(选中态判断不可行:Obsidian 自带 embed 会盖住源码行)
     const widget = editingGalleries.has(text)
-      ? new BiliGalleryEditWidget(text, start, end, editingGalleries.get(text))
-      : new BiliGalleryWidget(text, count, start, end);
-    ranges.push(Decoration.replace({ widget, block: true }).range(start, end));
+      ? new BiliGalleryEditWidget(text, range.from, range.to, editingGalleries.get(text))
+      : new BiliGalleryWidget(text, count, range.from, range.to);
+    ranges.push(Decoration.replace({ widget, block: true }).range(range.from, range.to));
     start = -1; count = 0;
   };
   for (let i = 1; i <= state.doc.lines; i++) {
