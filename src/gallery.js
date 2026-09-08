@@ -322,28 +322,3 @@ export const galleryField = StateField.define({
     : deco,
   provide: (f) => EditorView.decorations.from(f),
 });
-
-// 自检愈合:有的编辑器实例(后台标签、启动恢复、状态切换)里,
-// 文档已加载但画廊装饰是空的——create 时机早于正文,后续又无 docChanged 触发重建。
-// 扫所有叶子:有卡片行但装饰为空就 poke 重建。由 layout-change / file-open 事件防抖调用。
-export function healGalleryViews(app) {
-  app.workspace.iterateAllLeaves((leaf) => {
-    try {
-      const view = leaf.view;
-      const cm = view && view.editor && view.editor.cm;
-      if (!cm || !view.file || view.file.extension !== 'md') return;
-      const doc = cm.state.doc;
-      let hasCard = false;
-      for (let i = 1; i <= doc.lines; i++) {
-        if (CARD_LINE_RE.test(doc.line(i).text)) { hasCard = true; break; }
-      }
-      if (!hasCard) return;
-      let decoEmpty = true;
-      cm.state.field(galleryField, false)?.iter(() => { decoEmpty = false; });
-      if (!decoEmpty) return;
-      pokeView(cm);
-    } catch (e) {
-      console.error('[bili-card] heal failed:', e);
-    }
-  });
-}

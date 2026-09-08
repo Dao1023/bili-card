@@ -4,7 +4,7 @@ import { Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, settings } from './settings.js';
 import { globalCss } from './css.js';
 import { BiliCardRenderer } from './renderer.js';
-import { galleryField, healGalleryViews, pokeView, setGalleryApp } from './gallery.js';
+import { galleryField, setGalleryApp } from './gallery.js';
 import { BiliCardSettingTab } from './settings-tab.js';
 import { UrlModal } from './url-modal.js';
 
@@ -58,18 +58,6 @@ export default class BiliCardPlugin extends Plugin {
 
     // Live Preview:StateField + widget 接管连续卡片行
     this.registerEditorExtension(galleryField);
-
-    // 画廊自检愈合:后台标签/启动恢复的编辑器里,装饰可能空着(见 healGalleryViews)。
-    // 加载完成后来一遍,之后 layout-change / file-open 时防抖各来一遍。
-    const heal = () => {
-      window.clearTimeout(this.healTimer);
-      this.healTimer = window.setTimeout(() => {
-        try { healGalleryViews(this.app); } catch (e) { console.error('[bili-card] heal failed:', e); }
-      }, 400);
-    };
-    this.app.workspace.onLayoutReady(() => window.setTimeout(heal, 500));
-    this.registerEvent(this.app.workspace.on('layout-change', heal));
-    this.registerEvent(this.app.workspace.on('file-open', heal));
   }
 
   // 设置变更:保存 → 刷新全局样式 → 重渲染已增强的卡片(签名机制)→ poke 画廊视图重排
