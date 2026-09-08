@@ -64,6 +64,12 @@ function extendedRange(state, start, end) {
   } else if (to < state.doc.length && state.doc.sliceString(to, to + 1) === '\n') {
     to = to + 1;
   }
+  // 没吞到前导空白行(卡片紧跟文字或顶在文档开头下方的文字后):embed 的范围
+  // 可能带行尾换行,只吞自己的换行仍和它打平;这里再向前咬一个字符(前一行的
+  // 行尾换行),依然严格大于。卡片是文档首行时无处可咬,那种情况接受打平。
+  if (from === start && from > 0 && state.doc.sliceString(from - 1, from) === '\n') {
+    from = from - 1;
+  }
   return { from, to };
 }
 
