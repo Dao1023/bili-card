@@ -112,10 +112,9 @@ class BiliGalleryWidget extends WidgetType {
   toDOM(view) {
     const container = document.createElement('div');
     container.className = 'bili-gallery-widget';
-    // 关键兜底:后台/隐藏状态下构造的编辑器可能把 widget 测成 0 高,
-    // 高度图记下 0 后该块被踢出可视范围、永远不画(空白缝,点击重测才好)。
-    // min-height = 估算高度,保证入账高度恒 > 0,块永远算可见。
-    container.style.minHeight = `${this.estimatedHeight}px`;
+    // 不设 min-height:高度跟随真实网格内容。estimatedHeight 只作 CM6
+    // 的滚动条估算,写成 CSS min-height 会钉死下限——宽屏下列数变多、
+    // 内容比 3 列估算矮时,底部永远挂着消不掉的空白。
 
     // 右上角编辑按钮(和 Obsidian 自带 embed 的习惯一致)
     const editBtn = document.createElement('button');
